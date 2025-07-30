@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <title>مدیریت هزینه ساختمان </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- فونت وزیر -->
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+  <!-- Persian Datepicker CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css"/>
+
+  <!-- Persian Datepicker JS -->
+  <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: Vazir, Tahoma, sans-serif;
+      background: #f0f4ff;
+      direction: rtl;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      color: #2c3e50;
+      user-select: none;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #34495e;
+      margin-bottom: 20px;
+      user-select: none;
+    }
+    .form, .payment-form, .summary-box, .filter-box, .export-box {
+      background: white;
+      padding: 20px 25px;
+      margin-bottom: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s ease;
+    }
+    .form:hover, .payment-form:hover, .summary-box:hover, .filter-box:hover, .export-box:hover {
+      box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+    }
+    input, textarea, select, button {
+      width: 100%;
+      padding: 10px 12px;
+      margin: 10px 0 15px;
+      border-radius: 8px;
+      border: 1.5px solid #3498db;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #2980b9;
+      outline: none;
+      box-shadow: 0 0 8px #2980b9aa;
+    }
+    button {
+      background: #2980b9;
+      color: white;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      user-select: none;
+    }
+    button:hover {
+      background: #1c5980;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+    }
+    th, td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #ddd;
+      text-align: right;
+      font-size: 15px;
+      color: #34495e;
+      user-select: text;
+    }
+    th {
+      background: #3498db;
+      color: #fff;
+      user-select: none;
+    }
+    .total {
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 17px;
+      color: #2980b9;
+      user-select: none;
+    }
+    .actions button {
+      padding: 6px 12px;
+      margin-left: 7px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s ease;
+      user-select: none;
+    }
+    .actions button:hover {
+      background: #c0392b;
+    }
+    .filter-box label {
+      font-weight: 700;
+      margin-top: 10px;
+      display: block;
+      color: #2980b9;
+      user-select: none;
+    }
+    .flex-row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .flex-row > * {
+      flex: 1;
+      min-width: 130px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>هزینه‌های ساختمان</h1>
+<div class="form">
+  <h2>ثبت هزینه جدید</h2>
+  <input type="text" id="title" placeholder="عنوان هزینه" />
+  <select id="category">
+    <option value="عمومی">عمومی</option>
+    <option value="آب">آب</option>
+    <option value="تعمیرات">تعمیرات</option>
+    <option value="سایر">سایر</option>
+    
+  </select>
+  <input type="text" id="amount" placeholder="مبلغ (تومان)" />
+  <input type="text" id="date" placeholder="تاریخ هزینه" readonly />
+  <textarea id="description" placeholder="توضیحات (اختیاری)"></textarea>
+  <button onclick="addExpense()">ثبت هزینه</button>
+</div>
+
+<div class="payment-form">
+  <h2>ثبت درآمد واحدها</h2>
+  <select id="unit">
+    <option value="">انتخاب واحد</option>
+    <option value="1">واحد 1</option>
+    <option value="2">واحد 2</option>
+    <option value="3">واحد 3</option>
+    <option value="4">واحد 4</option>
+    <option value="5">واحد 5</option>
+    <option value="6">واحد 6</option>
+    <option value="7">واحد 7</option>
+    <option value="8">واحد 8</option>
+    <option value="9">واحد 9</option>
+    <option value="10">واحد 10</option>
+  </select>
+  <input type="text" id="payAmount" placeholder="مبلغ پرداختی (تومان)" />
+  <input type="text" id="payDate" placeholder="تاریخ پرداخت" readonly />
+  <textarea id="payDescription" placeholder="توضیحات (اختیاری)"></textarea>
+  <button onclick="addPayment()">ثبت پرداخت</button>
+</div>
+
+<div class="filter-box">
+  <h2>فیلتر هزینه‌ها و درآمد ها</h2>
+  <div class="flex-row">
+    <div>
+      <label>دسته‌بندی هزینه</label>
+      <select id="filterCategory">
+        <option value="همه">همه</option>
+        <option value="عمومی">عمومی</option>
+        <option value="آب">آب</option>
+        <option value="تعمیرات">تعمیرات</option>
+      </select>
+    </div>
+    <div>
+      <label>از تاریخ (هزینه‌ها)</label>
+      <input type="text" id="filterStartDate" placeholder="از تاریخ" readonly />
+    </div>
+    <div>
+      <label>تا تاریخ (هزینه‌ها)</label>
+      <input type="text" id="filterEndDate" placeholder="تا تاریخ" readonly />
+    </div>
+  </div>
+  <button onclick="renderExpenses()">اعمال فیلتر هزینه‌ها</button>
+</div>
+
+<div class="summary-box">
+  <h2>مانده حساب  و بدهی واحدها</h2>
+  <div id="unitSummary"></div>
+</div>
+
+<table id="expenseTable">
+  <thead>
+    <tr>
+      <th>عنوان</th>
+      <th>دسته‌بندی</th>
+      <th>مبلغ</th>
+      <th>تاریخ</th>
+      <th>توضیحات</th>
+      <th>عملیات</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div class="total" id="totalAmount">جمع کل هزینه‌ها: ۰ تومان</div>
+
+<table id="paymentTable">
+  <thead>
+    <tr>
+      <th>واحد</th>
+      <th>مبلغ</th>
+      <th>تاریخ</th>
+      <th>توضیحات</th>
+      <th>عملیات</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div class="total" id="totalPayments">جمع کل پرداخت‌ها: ۰ تومان</div>
+
+<div class="export-box">
+  <button onclick="exportToExcel()">خروجی اکسل</button>
+</div>
+
+<script>
+  // تنظیم تاریخ شمسی
+  $(function () {
+    $("#date").pDatepicker({
+      format: 'YYYY/MM/DD',
+      initialValueType: 'gregorian',
+      autoClose: true,
+      observer: true,
+      calendarType: 'persian'
+    });
+    $("#payDate").pDatepicker({
+      format: 'YYYY/MM/DD',
+      initialValueType: 'gregorian',
+      autoClose: true,
+      observer: true,
+      calendarType: 'persian'
+    });
+    $("#filterStartDate").pDatepicker({
+      format: 'YYYY/MM/DD',
+      autoClose: true,
+      calendarType: 'persian'
+    });
+    $("#filterEndDate").pDatepicker({
+      format: 'YYYY/MM/DD',
+      autoClose: true,
+      calendarType: 'persian'
+    });
+  });
+
+  let expenses = [];
+  let payments = [];
+
+  function addExpense() {
+    let title = document.getElementById("title").value.trim();
+    let category = document.getElementById("category").value;
+    let amountStr = document.getElementById("amount").value.replace(/,/g, "").trim();
+    let date = document.getElementById("date").value.trim();
+    let description = document.getElementById("description").value.trim();
+
+    if (!title) {
+      alert("عنوان هزینه را وارد کنید.");
+      return;
+    }
+    if (!amountStr.match(/^\d+$/)) {
+      alert("مبلغ باید فقط شامل اعداد باشد.");
+      return;
+    }
+    let amount = parseInt(amountStr, 10);
+    if (amount <= 0) {
+      alert("مبلغ باید عدد مثبت باشد.");
+      return;
+    }
+    if (!date) {
+      alert("تاریخ هزینه را وارد کنید.");
+      return;
+    }
+
+    expenses.push({ id: Date.now(), title, category, amount, date, description });
+    saveData();
+    clearExpenseForm();
+    renderExpenses();
+    renderUnitSummary();
+  }
+
+  function clearExpenseForm() {
+    document.getElementById("title").value = "";
+    document.getElementById("category").value = "عمومی";
+    document.getElementById("amount").value = "";
+    document.getElementById("date").value = "";
+    document.getElementById("description").value = "";
+  }
+
+  function renderExpenses() {
+    let tbody = document.querySelector("#expenseTable tbody");
+    tbody.innerHTML = "";
+
+    let filterCategory = document.getElementById("filterCategory").value;
+    let filterStartDate = document.getElementById("filterStartDate").value;
+    let filterEndDate = document.getElementById("filterEndDate").value;
+
+    // تبدیل تاریخ شمسی به میلادی برای مقایسه
+    function toGregorian(dateStr) {
+      if (!dateStr) return null;
+      let pd = new persianDate(dateStr);
+      return pd.toCalendar('gregorian').format('YYYY/MM/DD');
+    }
+
+    let filtered = expenses.filter(e => {
+      if (filterCategory !== "همه" && e.category !== filterCategory) return false;
+      if (filterStartDate) {
+        let start = toGregorian(filterStartDate);
+        let expDate = toGregorian(e.date);
+        if (expDate < start) return false;
+      }
+      if (filterEndDate) {
+        let end = toGregorian(filterEndDate);
+        let expDate = toGregorian(e.date);
+        if (expDate > end) return false;
+      }
+      return true;
+    });
+
+    let total = 0;
+    for (let e of filtered) {
+      total += e.amount;
+      let tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${e.title}</td>
+        <td>${e.category}</td>
+        <td>${e.amount.toLocaleString('fa-IR')}</td>
+        <td>${e.date}</td>
+        <td>${e.description}</td>
+        <td class="actions">
+          <button onclick="deleteExpense(${e.id})">حذف</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+    document.getElementById("totalAmount").textContent = `جمع کل هزینه‌ها: ${total.toLocaleString('fa-IR')} تومان`;
+  }
+
+  function deleteExpense(id) {
+    expenses = expenses.filter(e => e.id !== id);
+    saveData();
+    renderExpenses();
+    renderUnitSummary();
+  }
+
+  function addPayment() {
+    let unit = document.getElementById("unit").value;
+    let amountStr = document.getElementById("payAmount").value.replace(/,/g, "").trim();
+    let date = document.getElementById("payDate").value.trim();
+    let description = document.getElementById("payDescription").value.trim();
+
+    if (!unit) {
+      alert("واحد را انتخاب کنید.");
+      return;
+    }
+    if (!amountStr.match(/^\d+$/)) {
+      alert("مبلغ پرداختی باید فقط شامل اعداد باشد.");
+      return;
+    }
+    let amount = parseInt(amountStr, 10);
+    if (amount <= 0) {
+      alert("مبلغ پرداختی باید عدد مثبت باشد.");
+      return;
+    }
+    if (!date) {
+      alert("تاریخ پرداخت را وارد کنید.");
+      return;
+    }
+
+    payments.push({ id: Date.now(), unit, amount, date, description });
+    saveData();
+    clearPaymentForm();
+    renderPayments();
+    renderUnitSummary();
+  }
+
+  function clearPaymentForm() {
+    document.getElementById("unit").value = "";
+    document.getElementById("payAmount").value = "";
+    document.getElementById("payDate").value = "";
+    document.getElementById("payDescription").value = "";
+  }
+
+  function renderPayments() {
+    let tbody = document.querySelector("#paymentTable tbody");
+    tbody.innerHTML = "";
+
+    let total = 0;
+    for (let p of payments) {
+      total += p.amount;
+      let tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.unit}</td>
+        <td>${p.amount.toLocaleString('fa-IR')}</td>
+        <td>${p.date}</td>
+        <td>${p.description}</td>
+        <td class="actions">
+          <button onclick="deletePayment(${p.id})">حذف</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+    document.getElementById("totalPayments").textContent = `جمع کل پرداخت‌ها: ${total.toLocaleString('fa-IR')} تومان`;
+  }
+
+  function deletePayment(id) {
+    payments = payments.filter(p => p.id !== id);
+    saveData();
+    renderPayments();
+    renderUnitSummary();
+  }
+
+  function renderUnitSummary() {
+    let summaryDiv = document.getElementById("unitSummary");
+    summaryDiv.innerHTML = "";
+
+    // محاسبه کل هزینه‌ها
+    let totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
+    // تقسیم کل هزینه بین 10 واحد (تعداد واحدها ثابت در اینجا)
+    let perUnitExpense = totalExpenses / 10;
+
+    // جمع پرداخت‌های هر واحد
+    let unitPayments = {};
+    for (let i = 1; i <= 10; i++) {
+      unitPayments[i] = 0;
+    }
+    for (let p of payments) {
+      unitPayments[p.unit] = (unitPayments[p.unit] || 0) + p.amount;
+    }
+
+    // ساخت جدول خلاصه
+    let table = document.createElement("table");
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>واحد</th>
+          <th>مبلغ هزینه سهم واحد</th>
+          <th>مبلغ پرداختی</th>
+          <th>مانده حساب</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    `;
+    let tbody = table.querySelector("tbody");
+
+    for (let i = 1; i <= 10; i++) {
+      let pay = unitPayments[i];
+      let balance = pay - perUnitExpense;
+      let tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i}</td>
+        <td>${perUnitExpense.toLocaleString('fa-IR')}</td>
+        <td>${pay.toLocaleString('fa-IR')}</td>
+        <td>${balance.toLocaleString('fa-IR')}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    summaryDiv.appendChild(table);
+  }
+
+  function saveData() {
+    localStorage.setItem("expenses", JSON.stringify(expenses));
+    localStorage.setItem("payments", JSON.stringify(payments));
+  }
+
+  function loadData() {
+    let exp = localStorage.getItem("expenses");
+    if (exp) expenses = JSON.parse(exp);
+    let pay = localStorage.getItem("payments");
+    if (pay) payments = JSON.parse(pay);
+  }
+
+  function exportToExcel() {
+    let wb = XLSX.utils.book_new();
+
+    // جدول هزینه‌ها
+    let expenseData = [
+      ["عنوان", "دسته‌بندی", "مبلغ", "تاریخ", "توضیحات"]
+    ];
+    expenses.forEach(e => {
+      expenseData.push([e.title, e.category, e.amount, e.date, e.description]);
+    });
+    let ws1 = XLSX.utils.aoa_to_sheet(expenseData);
+    XLSX.utils.book_append_sheet(wb, ws1, "هزینه‌ها");
+
+    // جدول پرداخت‌ها
+    let paymentData = [
+      ["واحد", "مبلغ", "تاریخ", "توضیحات"]
+    ];
+    payments.forEach(p => {
+      paymentData.push([p.unit, p.amount, p.date, p.description]);
+    });
+    let ws2 = XLSX.utils.aoa_to_sheet(paymentData);
+    XLSX.utils.book_append_sheet(wb, ws2, "پرداخت‌ها");
+
+    XLSX.writeFile(wb, "building_expenses.xlsx");
+  }
+
+  // لود اولیه داده‌ها و رندر
+  loadData();
+  renderExpenses();
+  renderPayments();
+  renderUnitSummary();
+</script>
+
+</body>
+</html>
